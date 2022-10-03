@@ -1,0 +1,10 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: netty-service
+          uri: lb:ws://netty-service
+          predicates:
+            - Path=/lb
+server:
+  port: 8080

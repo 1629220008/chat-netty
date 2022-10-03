@@ -1,0 +1,8 @@
+#外部系统配置统一丢到bootstrap中，避免nacos之类生命周期在applicationContext容器加载前事情出现意外
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+  application:
+    name: chat-gateway
