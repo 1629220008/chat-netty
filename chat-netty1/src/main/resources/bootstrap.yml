@@ -4,9 +4,16 @@ spring:
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
+        namespace: 0d54788a-216b-4651-9d6c-35dff0a23060
+        group: chat
   application:
-    name: chat-netty
+    name: chat-netty-spring
+
 
 netty:
   server:
     port: 9123
+    namespace: ${spring.cloud.nacos.discovery.namespace}
+logging:
+  level:
+    root: debug

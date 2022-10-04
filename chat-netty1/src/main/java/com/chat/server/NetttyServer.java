@@ -1,13 +1,8 @@
 package com.chat.server;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
-import com.alibaba.nacos.api.annotation.NacosInjected;
-import com.alibaba.nacos.api.annotation.NacosProperties;
-import com.alibaba.nacos.api.config.ConfigService;
-import com.alibaba.nacos.api.config.annotation.NacosConfigurationProperties;
-import com.alibaba.nacos.api.config.annotation.NacosProperty;
-import com.alibaba.nacos.api.naming.NamingFactory;
-import com.alibaba.nacos.api.naming.NamingMaintainFactory;
+import com.alibaba.cloud.nacos.NacosServiceManager;
+import com.alibaba.cloud.nacos.registry.NacosServiceRegistry;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.chat.handle.CustomerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
@@ -25,13 +20,12 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.SmartApplicationListener;
-
+import javax.annotation.Resource;
 import java.net.InetAddress;
 
 @Configuration
 @Slf4j
 public class NetttyServer implements ApplicationRunner, SmartApplicationListener {
-    private ServerBootstrap serverBootstrap;
 
     private ChannelFuture sync;
 
@@ -39,6 +33,12 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
 
     @Value("${netty.server.port}")
     private Integer nettyPort;
+
+    @Value("${netty.server.namespace")
+    private String namespace;
+
+    @Autowired
+    private NacosServiceManager nacosServiceManager;
 
     @Autowired
     private NacosDiscoveryProperties nacosDiscoveryProperties;
@@ -48,7 +48,7 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
     public void run(ApplicationArguments args) throws Exception {
         EventLoopGroup baseGroup = new NioEventLoopGroup();
         EventLoopGroup workGroup = new NioEventLoopGroup();
-        serverBootstrap = new ServerBootstrap();
+        ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(baseGroup, workGroup)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new CustomerChannelInitializer());
@@ -56,10 +56,12 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
         channel = future.channel();
 
         String ip = InetAddress.getLocalHost().getHostAddress();
-        //将服务注册到注册中心
 
-        NamingService namingService = NamingFactory.createNamingService(nacosDiscoveryProperties.getServerAddr());
-        namingService.registerInstance("netty-service", ip, nettyPort);
+        //将服务注册到注册中心
+        NamingService namingService = nacosServiceManager
+                .getNamingService(nacosDiscoveryProperties.getNacosProperties());
+
+        namingService.registerInstance("netty-service", nacosDiscoveryProperties.getGroup(), ip, nettyPort);
     }
 
     @Override
