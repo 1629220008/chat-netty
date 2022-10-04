@@ -2,6 +2,7 @@ package com.chat.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,5 +17,10 @@ public class TestContoller {
     public String hell() {
         log.info("hello");
         return "hello";
+    }
+
+    @PostMapping
+    public String send(String msg, String ...userId) {
+        return "success";
     }
 }

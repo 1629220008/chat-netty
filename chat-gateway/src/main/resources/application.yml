@@ -9,7 +9,7 @@ spring:
         - id: netty-spring
           uri: lb:ws://netty-service/lbh
           predicates:
-            - Path=/lbh
+            - Path=/lbh/**
 
 #        测试http请求是否能正常负载
         - id: netty-spring-test

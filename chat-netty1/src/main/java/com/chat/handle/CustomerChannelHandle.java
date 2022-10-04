@@ -1,7 +1,10 @@
 package com.chat.handle;
 
 import com.alibaba.fastjson.JSON;
+import com.chat.util.ApplicationContextUtil;
+import com.chat.util.RedisUtils;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
@@ -10,9 +13,16 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -26,10 +36,12 @@ public class CustomerChannelHandle extends SimpleChannelInboundHandler<TextWebSo
     private final AttributeKey<String> key = AttributeKey.valueOf(USER);
     private static final ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
+    private RedisUtils redisUtils = ApplicationContextUtil.getBean(RedisUtils.class);
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         // 首次连接是FullHttpRequest，处理参数
-        if (null != msg && msg instanceof FullHttpRequest) {
+        if (msg instanceof FullHttpRequest) {
             FullHttpRequest request = (FullHttpRequest) msg;
             String uri = request.uri();
 
@@ -52,19 +64,18 @@ public class CustomerChannelHandle extends SimpleChannelInboundHandler<TextWebSo
 
     private static ConcurrentMap<String, String> getUrlParams(String url) {
         ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
-        url = url.replace("?", ";");
-        if (!url.contains(";")) {
+        if (!url.contains("?")) {
             return map;
         }
-        if (url.split(";").length > 0) {
-            String[] arr = url.split(";")[1].split("&");
+        if (url.split("\\?").length > 0) {
+            String[] arr = url.split("\\?")[1].split("&");
             for (String s : arr) {
-                String key = s.split("=")[0];
-                String value = s.split("=")[1];
+                String[] split = s.split("=");
+                String key = split[0];
+                String value = split[1];
                 map.put(key, value);
             }
             return map;
-
         } else {
             return map;
         }
@@ -97,9 +108,12 @@ public class CustomerChannelHandle extends SimpleChannelInboundHandler<TextWebSo
         handlerRemoved(ctx);
     }
 
+    @SneakyThrows
     private void online(String userId, Channel channel) {
         // 保存channel通道的附带信息，以用户的uid为标识
         channel.attr(key).set(userId);
-        group.add(channel);
+        // 將映射存放到redis 便于集群的服务发现 为了省事，先假设用户只会登录一台机子
+        String ip = InetAddress.getLocalHost().getHostAddress();
+        redisUtils.setValue(userId, Arrays.asList(ip, channel.id().asLongText()));
     }
 }

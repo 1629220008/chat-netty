@@ -33,6 +33,9 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
     @Autowired
     private NacosDiscoveryProperties nacosDiscoveryProperties;
 
+    @Autowired
+    private CustomerChannelInitializer customerChannelInitializer;
+
     private EventLoopGroup baseGroup;
 
     private EventLoopGroup workGroup;
@@ -44,7 +47,7 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(baseGroup, workGroup)
                 .channel(NioServerSocketChannel.class)
-                .childHandler(new CustomerChannelInitializer());
+                .childHandler(customerChannelInitializer);
         ChannelFuture future = serverBootstrap.bind(nettyPort).sync();
 
         String ip = InetAddress.getLocalHost().getHostAddress();
