@@ -14,8 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class CustomerChannelHandle extends SimpleChannelInboundHandler<TextWebSocketFrame> {
-    private final ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-
+    private static final ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, TextWebSocketFrame msg) throws Exception {

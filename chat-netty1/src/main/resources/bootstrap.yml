@@ -16,4 +16,4 @@ netty:
     namespace: ${spring.cloud.nacos.discovery.namespace}
 logging:
   level:
-    root: debug
+    root: info

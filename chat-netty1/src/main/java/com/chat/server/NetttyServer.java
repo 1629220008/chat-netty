@@ -2,11 +2,9 @@ package com.chat.server;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
 import com.alibaba.cloud.nacos.NacosServiceManager;
-import com.alibaba.cloud.nacos.registry.NacosServiceRegistry;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.chat.handle.CustomerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,22 +18,14 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.SmartApplicationListener;
-import javax.annotation.Resource;
 import java.net.InetAddress;
 
 @Configuration
 @Slf4j
 public class NetttyServer implements ApplicationRunner, SmartApplicationListener {
 
-    private ChannelFuture sync;
-
-    private Channel channel;
-
     @Value("${netty.server.port}")
     private Integer nettyPort;
-
-    @Value("${netty.server.namespace")
-    private String namespace;
 
     @Autowired
     private NacosServiceManager nacosServiceManager;
@@ -43,17 +33,19 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
     @Autowired
     private NacosDiscoveryProperties nacosDiscoveryProperties;
 
+    private EventLoopGroup baseGroup;
+
+    private EventLoopGroup workGroup;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        EventLoopGroup baseGroup = new NioEventLoopGroup();
-        EventLoopGroup workGroup = new NioEventLoopGroup();
+        baseGroup = new NioEventLoopGroup();
+        workGroup = new NioEventLoopGroup();
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(baseGroup, workGroup)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new CustomerChannelInitializer());
-        ChannelFuture future = serverBootstrap.bind(nettyPort);
-        channel = future.channel();
+        ChannelFuture future = serverBootstrap.bind(nettyPort).sync();
 
         String ip = InetAddress.getLocalHost().getHostAddress();
 
@@ -62,6 +54,9 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
                 .getNamingService(nacosDiscoveryProperties.getNacosProperties());
 
         namingService.registerInstance("netty-service", nacosDiscoveryProperties.getGroup(), ip, nettyPort);
+
+        // 内部wait，大概意思应该是阻塞的监听网络io信号
+        future.channel().closeFuture().sync();
     }
 
     @Override
@@ -72,9 +67,8 @@ public class NetttyServer implements ApplicationRunner, SmartApplicationListener
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
         // 优雅下线，关闭netty
-        if (channel != null) {
-            channel.close();
-        }
+        baseGroup.shutdownGracefully();
+        workGroup.shutdownGracefully();
         log.info("netty 服务下线");
     }
 }
