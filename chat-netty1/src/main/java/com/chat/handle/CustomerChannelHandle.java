@@ -76,7 +76,7 @@ public class CustomerChannelHandle extends SimpleChannelInboundHandler<TextWebSo
         String channelId = server.get(1);
         msgData.setChannelId(channelId);
         rocketMQTemplate.convertAndSend(toTopic, msgData);
-        ChannelUtils.writeAndFlush(new TextWebSocketFrame(msg.text()));
+//        ChannelUtils.writeAndFlush(new TextWebSocketFrame(msg.text()));
     }
 
     @Override
