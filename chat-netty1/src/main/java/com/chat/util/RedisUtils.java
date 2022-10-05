@@ -13,4 +13,13 @@ public class RedisUtils {
         redisTemplate.opsForValue().set(key, value);
     }
 
+
+    public void setHashValue(String key, Object entryKey, Object entryValue) {
+        redisTemplate.opsForHash().put(key, entryKey, entryValue);
+    }
+
+    public Object getHashValue(String key, Object entryKey) {
+        return redisTemplate.opsForHash().get(key, entryKey);
+    }
+
 }
